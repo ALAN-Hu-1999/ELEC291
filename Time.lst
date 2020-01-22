@@ -16,24 +16,24 @@
 0000             18   CLK           EQU 22118400 ; Microcontroller system crystal frequency in Hz
 0000             19   TIMER0_RATE   EQU 4096     ; 2048Hz squarewave (peak amplitude of CEM-1203 speaker)
 0000             20   TIMER0_RELOAD EQU ((65536-(CLK/TIMER0_RATE)))
-0000             21   TIMER2_RATE   EQU 50000     ; 1000Hz, for a timer tick of 1ms
+0000             21   TIMER2_RATE   EQU 500     ; 1000Hz, for a timer tick of 1ms
 0000             22   TIMER2_RELOAD EQU ((65536-(CLK/TIMER2_RATE)))
 0000             23   
-0000             24   BOOT_BUTTON   equ P4.5
-0000             25   SOUND_OUT     equ P3.7
-0000             26   UPDOWN        equ P0.0
-0000             27   bottom1            equ P0.0
-0000             28   bottom2            equ P0.1
-0000             29   
+0000             24   BOOT_BUTTON      equ P4.5
+0000             25   SOUND_OUT                equ P3.7
+0000             26   UPDOWN                   equ P0.0
+0000             27   bottom1                  equ P0.1
+0000             28   bottom2                  equ P0.2
+0000             29   bottom3                  equ p0.3
 0000             30   ; Reset vector
 0000             31   org 0x0000
 0000 0204DD      32       ljmp main
 0003             33   
 0003             34   ; External interrupt 0 vector (not used in this code)
 0003             35   org 0x0003
-0003 0200DC      36            ljmp botton_1_ISR
-0006             37   
-0006             38   ; Timer/Counter 0 overflow interrupt vector
+0003 32          36            reti
+0004             37   
+0004             38   ; Timer/Counter 0 overflow interrupt vector
 000B             39   org 0x000B
 000B 0200F5      40            ljmp Timer0_ISR
 000E             41   
@@ -116,11 +116,11 @@
 00F8            120   ;---------------------------------;
 00F8            121   Timer2_Init:
 00F8 75C800     122            mov T2CON, #0 ; Stop timer/counter.  Autoreload mode.
-00FB 75CDFE     123            mov TH2, #high(TIMER2_RELOAD)
-00FE 75CC46     124            mov TL2, #low(TIMER2_RELOAD)
+00FB 75CD53     123            mov TH2, #high(TIMER2_RELOAD)
+00FE 75CC34     124            mov TL2, #low(TIMER2_RELOAD)
 0101            125            ; Set the reload value
-0101 75CBFE     126            mov RCAP2H, #high(TIMER2_RELOAD)
-0104 75CA46     127            mov RCAP2L, #low(TIMER2_RELOAD)
+0101 75CB53     126            mov RCAP2H, #high(TIMER2_RELOAD)
+0104 75CA34     127            mov RCAP2L, #low(TIMER2_RELOAD)
 0107            128            ; Init One millisecond interrupt counter.  It is a 16-bit variable made with two 8-bit parts
 0107 E4         129            clr a
 0108 F530       130            mov Count1ms+0, a
@@ -703,54 +703,123 @@
 0573 7800       552            mov R0, #0 ; Column where to display the big font 2-digit number
 0575 E536       553            mov a, Hour
 0577 1204C5     554            lcall Display_Big_BCD
-057A            555   
-057A 7486       556            mov a, #0x86
-057C 120083     556            lcall ?WriteCommand
-057F 742E       557            mov a, #'.'
-0581 12007E     557            lcall ?WriteData
-0584 74C6       558            mov a, #0xc6
-0586 120083     558            lcall ?WriteCommand
-0589 742E       559            mov a, #'.'
-058B 12007E     559            lcall ?WriteData
-058E 748F       560            mov a, #0x8f
-0590 120083     560            lcall ?WriteCommand
-0593 744D       561            mov a, #'M'
-0595 12007E     561            lcall ?WriteData
-0598            562   
-0598 30010A     563            jnb amORpm, diaplayAM
-059B 748E       564            mov a, #0x8e
-059D 120083     564            lcall ?WriteCommand
-05A0 7450       565            mov a, #'P'
-05A2 12007E     565            lcall ?WriteData
-05A5            566            
-05A5            567   diaplayAM:
-05A5 748E       568            mov a, #0x8e
-05A7 120083     568            lcall ?WriteCommand
-05AA 7441       569            mov a, #'A'
-05AC 12007E     569            lcall ?WriteData
-05AF 020503     570            ljmp loop
-05B2            571            
-05B2            572   check_bottom1:
-05B2 208029     573            jb bottom1, DDD
-05B5 C002       574            push AR2
-05B7 7A32       574            mov R2, #50
-05B9 120039     574            lcall ?Wait_Milli_Seconds
-05BC D002       574            pop AR2
-05BE 20801D     575            jb bottom1, DDD
-05C1 3080FD     576            jnb bottom1, $  ; wait for the buttom to be released
-05C4 C2CA       577            clr TR2
-05C6            578   timer_config:
-05C6 D202       579            setb pause_flag
-05C8            580   
-05C8 2080FB     581            jb bottom1, timer_config
-05CB C002       582            push AR2
-05CD 7A32       582            mov R2, #50
-05CF 120039     582            lcall ?Wait_Milli_Seconds
-05D2 D002       582            pop AR2
-05D4 2080EF     583            jb bottom1, timer_config
-05D7 3080FD     584            jnb bottom1, $  ; wait for the buttom to be released
-05DA D2CA       585            setb TR2
-05DC C202       586            clr pause_flag
-05DE            587   DDD:
-05DE 020503     588       ljmp loop
-05E1            589   END
+057A            555            
+057A            556   
+057A 7486       557            mov a, #0x86
+057C 120083     557            lcall ?WriteCommand
+057F 742E       558            mov a, #'.'
+0581 12007E     558            lcall ?WriteData
+0584 74C6       559            mov a, #0xc6
+0586 120083     559            lcall ?WriteCommand
+0589 742E       560            mov a, #'.'
+058B 12007E     560            lcall ?WriteData
+058E 748F       561            mov a, #0x8f
+0590 120083     561            lcall ?WriteCommand
+0593 744D       562            mov a, #'M'
+0595 12007E     562            lcall ?WriteData
+0598            563   
+0598 30010A     564            jnb amORpm, diaplayAM
+059B 748E       565            mov a, #0x8e
+059D 120083     565            lcall ?WriteCommand
+05A0 7450       566            mov a, #'P'
+05A2 12007E     566            lcall ?WriteData
+05A5            567            
+05A5            568   diaplayAM:
+05A5 748E       569            mov a, #0x8e
+05A7 120083     569            lcall ?WriteCommand
+05AA 7441       570            mov a, #'A'
+05AC 12007E     570            lcall ?WriteData
+05AF            571            
+05AF            572   check_bottom1:
+05AF 308103     573            jnb bottom1, QQQ
+05B2 020656     574            ljmp DDD
+05B5            575   QQQ:
+05B5            576   
+05B5 C002       577            push AR2
+05B7 7A32       577            mov R2, #50
+05B9 120039     577            lcall ?Wait_Milli_Seconds
+05BC D002       577            pop AR2
+05BE 308103     578            jnb bottom1, WWW
+05C1 020656     579            ljmp DDD
+05C4            580   WWW:
+05C4 3081FD     581            jnb bottom1, $  ; wait for the buttom to be released
+05C7 C2CA       582            clr TR2         ;disable timer
+05C9            583   timer_config:
+05C9 D202       584            setb pause_flag
+05CB            585            
+05CB 20821F     586            jb bottom2, EEE
+05CE C002       587            push AR2
+05D0 7A32       587            mov R2, #50
+05D2 120039     587            lcall ?Wait_Milli_Seconds
+05D5 D002       587            pop AR2
+05D7 208213     588            jb bottom2, EEE
+05DA 3082FD     589            jnb bottom2, $
+05DD            590   
+05DD E533       591            mov a, Minute
+05DF 2401       592            add a, #0x1
+05E1 D4         593            da a
+05E2 F533       594            mov Minute, a
+05E4            595   
+05E4 E533       596            mov a, Minute
+05E6 B46004     597            cjne a, #0x60, EEE
+05E9 5400       598            anl a, #0x0
+05EB F533       599            mov Minute, a   ;reset Minute
+05ED            600   
+05ED            601            
+05ED            602   EEE:
+05ED 208328     603            jb bottom3, GGG
+05F0 C002       604            push AR2
+05F2 7A32       604            mov R2, #50
+05F4 120039     604            lcall ?Wait_Milli_Seconds
+05F7 D002       604            pop AR2
+05F9 20831C     605            jb bottom3, GGG
+05FC 3083FD     606            jnb bottom3, $
+05FF            607   
+05FF E536       608            mov a, Hour
+0601 2401       609            add a, #0x1
+0603 D4         610            da a
+0604 F536       611            mov Hour, a
+0606            612   
+0606 E536       613            mov a, Hour
+0608 B4130D     614            cjne a, #0x13, GGG
+060B 5400       615            anl a, #0x0
+060D F536       616            mov Hour, a             ;reset Hour
+060F 300104     617            jnb amORpm, FFF
+0612 C201       618            clr amOrpm
+0614 8002       619            sjmp GGG
+0616            620   FFF:
+0616 D201       621            setb amORpm
+0618            622   GGG:
+0618 7807       623            mov R0, #7 ; Column where to display the big font 2-digit number
+061A E533       624            mov a, Minute
+061C 1204C5     625            lcall Display_Big_BCD
+061F 7800       626            mov R0, #0 ; Column where to display the big font 2-digit number
+0621 E536       627            mov a, Hour
+0623 1204C5     628            lcall Display_Big_BCD
+0626            629            
+0626 30010A     630            jnb amORpm, HHH
+0629 748E       631            mov a, #0x8e
+062B 120083     631            lcall ?WriteCommand
+062E 7450       632            mov a, #'P'
+0630 12007E     632            lcall ?WriteData
+0633            633            
+0633            634   HHH:
+0633 748E       635            mov a, #0x8e
+0635 120083     635            lcall ?WriteCommand
+0638 7441       636            mov a, #'A'
+063A 12007E     636            lcall ?WriteData
+063D            637                    
+063D 208189     638            jb bottom1, timer_config
+0640 C002       639            push AR2
+0642 7A32       639            mov R2, #50
+0644 120039     639            lcall ?Wait_Milli_Seconds
+0647 D002       639            pop AR2
+0649 208103     640            jb bottom1, RRR
+064C 0205C9     641            ljmp timer_config
+064F            642   RRR:
+064F 3081FD     643            jnb bottom1, $  ; wait for the buttom to be released
+0652 D2CA       644            setb TR2
+0654 C202       645            clr pause_flag
+0656            646   DDD:
+0656 020503     647       ljmp loop
+0659            648   END
